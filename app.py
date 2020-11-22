@@ -1,17 +1,28 @@
 import os
 
 from cs50 import SQL
+import flask
 from flask import Flask, flash, redirect, render_template, request, session
-from flask_session import Session
+# from flask_session import Session
+from flask_sessionstore import Session
 from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime, timedelta
 
+
 from helpers import apology, login_required, lookup, usd
 
 # Configure application
-app = Flask(__name__)
+app = flask.Flask(__name__)
+
+app.debug = True
+app.config['SESSION_TYPE'] = 'sqlalchemy'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+# Session(app)
+session1 = Session(app)
+session1.app.session_interface.db.create_all()
 
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -25,19 +36,19 @@ def after_request(response):
     response.headers["Pragma"] = "no-cache"
     return response
 
-@app.before_request
-def make_session_permanent():
-    session.permanent = True
-    app.permanent_session_lifetime = timedelta(minutes=5)
+# @app.before_request
+# def make_session_permanent():
+#     session.permanent = True
+#     app.permanent_session_lifetime = timedelta(minutes=5)
 
 # Custom filter
 app.jinja_env.filters["usd"] = usd
 
 # Configure session to use filesystem (instead of signed cookies)
-app.config["SESSION_FILE_DIR"] = mkdtemp()
-app.config["SESSION_PERMANENT"] = True
-app.config["SESSION_TYPE"] = "filesystem"
-Session(app)
+# app.config["SESSION_FILE_DIR"] = mkdtemp()
+# app.config["SESSION_PERMANENT"] = True
+# app.config["SESSION_TYPE"] = "filesystem"
+# Session(app)
 
 # Configure CS50 Library to use SQLite database
 db = SQL("sqlite:///finance.db")
@@ -149,7 +160,8 @@ def login():
     """Log user in"""
 
     # Forget any user_id
-    session.clear()
+    # session.clear()
+    # del session['user_id']
 
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
@@ -171,7 +183,11 @@ def login():
             return apology("invalid username and/or password", 403)
 
         # Remember which user has logged in
-        session["user_id"] = rows[0]["id"]
+        session['user_id'] = rows[0]["id"]
+
+        
+
+        print(session)
 
         # Redirect user to home page
         return redirect("/")
@@ -187,6 +203,7 @@ def logout():
 
     # Forget any user_id
     session.clear()
+    # del session['user_id']
 
     # Redirect user to login form
     return redirect("/")
