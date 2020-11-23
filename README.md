@@ -1,7 +1,7 @@
-Demo:
+### Demo
 https://derek-cs50-finance.herokuapp.com/
 
-Features included:
+### Features included
 
 - A registration and login system; hashed passwords in db
 - Session data stored in relational db
