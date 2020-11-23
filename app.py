@@ -1,7 +1,6 @@
 import os
 
 from cs50 import SQL
-import flask
 from flask import Flask, flash, redirect, render_template, request, session
 # from flask_session import Session
 from flask_sessionstore import Session
@@ -10,19 +9,11 @@ from werkzeug.exceptions import default_exceptions, HTTPException, InternalServe
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime, timedelta
 
-
 from helpers import apology, login_required, lookup, usd
 
 # Configure application
-app = flask.Flask(__name__)
-
+app = Flask(__name__)
 app.debug = True
-app.config['SESSION_TYPE'] = 'sqlalchemy'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-# Session(app)
-session1 = Session(app)
-session1.app.session_interface.db.create_all()
 
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -41,6 +32,7 @@ def after_request(response):
 #     session.permanent = True
 #     app.permanent_session_lifetime = timedelta(minutes=5)
 
+
 # Custom filter
 app.jinja_env.filters["usd"] = usd
 
@@ -50,8 +42,20 @@ app.jinja_env.filters["usd"] = usd
 # app.config["SESSION_TYPE"] = "filesystem"
 # Session(app)
 
+# Configure session to use sqlalchemy (instead of signed cookies)
+app.config['SESSION_TYPE'] = 'sqlalchemy'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+session1 = Session(app)
+session1.app.session_interface.db.create_all()
+
 # Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///finance.db")
+if os.environ.get("ENVIRONMENT") == "DEV":
+    db = SQL("sqlite:///finance-dev.db")
+elif os.environ.get("ENVIRONMENT") == "PROD":
+    db = SQL("sqlite:///finance.db")
+else:
+    raise RuntimeError("ENVIRONMENT not set")
 
 # Make sure API key is set
 if not os.environ.get("API_KEY"):
@@ -123,7 +127,8 @@ def buy():
         # Update the log with a 'Buy' action
 
         user_id = session['user_id']
-        username = db.execute(f"SELECT username FROM users WHERE id = {user_id}")[0]['username']
+        username = db.execute(f"SELECT username FROM users WHERE id = {user_id}")[
+            0]['username']
         symbol = quoteInfo['symbol']
         price = quoteInfo['price']
         action = 'Buy'
@@ -184,8 +189,6 @@ def login():
 
         # Remember which user has logged in
         session['user_id'] = rows[0]["id"]
-
-        
 
         print(session)
 
@@ -261,7 +264,7 @@ def register():
 @login_required
 def sell():
     """Sell shares of stock"""
-    
+
     # POST
     if request.method == "POST":
         stock_to_sell = request.form.get("symbol")
@@ -277,7 +280,6 @@ def sell():
         if int(stocks[0]['shares']) < shares_to_sell:
             return apology("Not enough shares")
 
-
         # After all checking passed:
         currentTimestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -291,7 +293,8 @@ def sell():
             session["user_id"]))[0]['cash']
 
         user_id = session['user_id']
-        username = db.execute(f"SELECT username FROM users WHERE id = {user_id}")[0]['username']
+        username = db.execute(f"SELECT username FROM users WHERE id = {user_id}")[
+            0]['username']
         symbol = quoteInfo['symbol']
         price = quoteInfo['price']
         action = 'Sell'
@@ -307,7 +310,6 @@ def sell():
         db.execute(myString)
 
         return redirect("/")
-        
 
     # GET
     myString = f"SELECT symbol, SUM(shares) as shares FROM log WHERE user_id = {session['user_id']} GROUP BY symbol HAVING SUM(shares) > 0;"
