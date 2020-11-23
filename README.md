@@ -1,5 +1,5 @@
 ### Demo
-https://derek-cs50-finance.herokuapp.com/
+https://derek-cs50-finance.herokuapp.com/ (US server. Might take time to load.)
 
 ### Features included
 
